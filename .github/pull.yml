@@ -1,0 +1,8 @@
+version: "1"
+rules:
+  - base: master
+    upstream: RetroPie:master
+    mergeMethod: hardreset
+  - base: stable
+    upstream: RetroPie:stable
+    mergeMethod: hardreset
