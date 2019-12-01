@@ -18,7 +18,6 @@ skip_tags: true
 branches:
   only:
   - master
-  - stable
 
 # TODO: add variables for dependency versions
 environment:
@@ -79,7 +78,6 @@ install:
 build_script:
   # prep for continuous upload
   - if %APPVEYOR_REPO_BRANCH%==master if %prepare_mode%==YES c:\dev\ciuploadtool\ciuploadtool.exe -suffix="%APPVEYOR_REPO_BRANCH%" -preponly
-  - if %APPVEYOR_REPO_BRANCH%==stable if %prepare_mode%==YES c:\dev\ciuploadtool\ciuploadtool.exe -suffix="%APPVEYOR_REPO_BRANCH%" -preponly
   - ps: if ($env:prepare_mode -eq "YES") { throw "Failing in order to stop the current build matrix job early" }
   
   # Build FreeType - TODO: check if it can be downloaded as pre-compiled
@@ -138,7 +136,6 @@ build_script:
 
 on_finish:
   - if %APPVEYOR_REPO_BRANCH%==master c:\dev\ciuploadtool\ciuploadtool.exe -suffix="%APPVEYOR_REPO_BRANCH%" C:\src\EmulationStation\*.zip
-  - if %APPVEYOR_REPO_BRANCH%==stable c:\dev\ciuploadtool\ciuploadtool.exe -suffix="%APPVEYOR_REPO_BRANCH%" C:\src\EmulationStation\*.zip
 
 deploy:
   release: v$(appveyor_build_version)
@@ -146,7 +143,7 @@ deploy:
   provider: GitHub
   auth_token:
     secure: GXj4zhimKBM8teJrJ0AcQEarDtGnamt2/oIB+daR93NW/N33N3NZyGRUWTPAl1mO
-  artifact: EmulationStation-Win32*.zip
+  artifact: EmulationStation
   draft: false
   prerelease: false
   on:
