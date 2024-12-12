@@ -3,12 +3,19 @@
 #define ES_CORE_UTILS_TIME_UTIL_H
 
 #include <string>
+#include <time.h>
 
 namespace Utils
 {
 	namespace Time
 	{
+		static inline time_t blankDate() {
+			// 1970-01-02
+			tm timeStruct = { 0, 0, 0, 2, 0, 70, 0, 0, -1 };
+			return mktime(&timeStruct);
+		}
 		static int NOT_A_DATE_TIME = 0;
+		static time_t BLANK_DATE = blankDate();
 
 		class DateTime
 		{

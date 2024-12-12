@@ -4,7 +4,6 @@
 #include "components/ImageComponent.h"
 #include "resources/Font.h"
 #include "resources/TextureResource.h"
-#include "InputManager.h"
 #include "Log.h"
 #include "Scripting.h"
 #include <algorithm>
@@ -78,8 +77,6 @@ bool Window::init()
 		return false;
 	}
 
-	InputManager::getInstance()->init();
-
 	ResourceManager::getInstance()->reloadAll();
 
 	//keep a reference to the default fonts, so they don't keep getting destroyed/recreated
@@ -107,7 +104,6 @@ void Window::deinit()
 	{
 		(*i)->onHide();
 	}
-	InputManager::getInstance()->deinit();
 	ResourceManager::getInstance()->unloadAll();
 	Renderer::deinit();
 }
@@ -121,8 +117,9 @@ void Window::textInput(const char* text)
 void Window::input(InputConfig* config, Input input)
 {
 	if (mScreenSaver && mScreenSaver->isScreenSaverActive() && Settings::getInstance()->getBool("ScreenSaverControls")
-		&& inputDuringScreensaver(config, input))
+		&& mScreenSaver->inputDuringScreensaver(config, input))
 	{
+		mTimeSinceLastInput = 0;
 		return;
 	}
 
@@ -135,7 +132,7 @@ void Window::input(InputConfig* config, Input input)
 	}
 
 	mTimeSinceLastInput = 0;
-	if (cancelScreenSaver())
+	if (input.value != 0 && cancelScreenSaver())
 		return;
 
 	bool dbg_keyboard_key_press = Settings::getInstance()->getBool("Debug") && config->getDeviceId() == DEVICE_KEYBOARD && input.value;
@@ -158,37 +155,6 @@ void Window::input(InputConfig* config, Input input)
 	{
 		this->peekGui()->input(config, input); // this is where the majority of inputs will be consumed: the GuiComponent Stack
 	}
-}
-
-bool Window::inputDuringScreensaver(InputConfig* config, Input input)
-{
-	bool input_consumed = false;
-	std::string screensaver_type = Settings::getInstance()->getString("ScreenSaverBehavior");
-
-	if (screensaver_type == "random video" || screensaver_type == "slideshow")
-	{
-		bool is_select_input = config->isMappedLike("right", input) || config->isMappedTo("select", input);
-		bool is_start_input = config->isMappedTo("start", input);
-
-		if (is_select_input)
-		{
-			if (input.value) {
-				mScreenSaver->nextMediaItem();
-				// user input resets sleep time counter
-				mTimeSinceLastInput = 0;
-			}
-			input_consumed = true;
-		}
-		else if (is_start_input)
-		{
-			bool slideshow_custom_images = Settings::getInstance()->getBool("SlideshowScreenSaverCustomMediaSource");
-			if (screensaver_type == "random video" || !slideshow_custom_images)
-			{
-				mScreenSaver->launchGame();
-			}
-		}
-	}
-	return input_consumed;
 }
 
 void Window::update(int deltaTime)
@@ -275,7 +241,7 @@ void Window::render()
 	// or not because it may perform a fade on transition
 	renderScreenSaver();
 
-	if(!mRenderScreenSaver && mInfoPopup)
+	if(mInfoPopup)
 	{
 		mInfoPopup->render(transform);
 	}
@@ -452,7 +418,7 @@ bool Window::isProcessing()
 	return count_if(mGuiStack.cbegin(), mGuiStack.cend(), [](GuiComponent* c) { return c->isProcessing(); }) > 0;
 }
 
-void Window::startScreenSaver()
+void Window::startScreenSaver(SystemData* system)
 {
 	if (mScreenSaver && !mRenderScreenSaver)
 	{
@@ -461,7 +427,7 @@ void Window::startScreenSaver()
 		for(auto i = mGuiStack.cbegin(); i != mGuiStack.cend(); i++)
 			(*i)->onScreenSaverActivate();
 
-		mScreenSaver->startScreenSaver();
+		mScreenSaver->startScreenSaver(system);
 		mRenderScreenSaver = true;
 	}
 }
